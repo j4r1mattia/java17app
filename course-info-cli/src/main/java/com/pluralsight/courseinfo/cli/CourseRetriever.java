@@ -1,7 +1,11 @@
 package com.pluralsight.courseinfo.cli;
 
+import static java.util.function.Predicate.not;
+
 import com.pluralsight.courseinfo.cli.service.CourseRetrievalService;
+import com.pluralsight.courseinfo.cli.service.CourseStorageService;
 import com.pluralsight.courseinfo.cli.service.PluralsightCourse;
+import com.pluralsight.courseinfo.repository.CourseRepository;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,8 +32,17 @@ public class CourseRetriever {
   private static void retrieveCourses(String author) {
     LOG.info("Retrieving courses for author '{}'", author);
     CourseRetrievalService courseRetrievalService = new CourseRetrievalService();
-    List<PluralsightCourse> coursesToStore = courseRetrievalService.getCoursesFor(author);
+    CourseRepository repository = CourseRepository.openCourseRepository("./courses.bd");
+    CourseStorageService courseStorageService = new CourseStorageService(repository);
+
+    List<PluralsightCourse> coursesToStore = courseRetrievalService.getCoursesFor(author)
+        .stream()
+        .filter(not(PluralsightCourse::isRetired))
+        .toList();
     LOG.info("Retrieved the following {} courses {}", coursesToStore.size(),
         coursesToStore);
+
+    courseStorageService.storePluralsightCourses(coursesToStore);
+    LOG.info("Courses succesfully stored");
   }
 }
